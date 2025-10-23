@@ -43,6 +43,20 @@ app.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK', message: 'Server is healthy' });
 });
 
+// 404 Not Found handler - must be after all routes
+app.use((req, res) => {
+    logger.warn('Route not found', { 
+        method: req.method, 
+        path: req.path,
+        ip: req.ip 
+    });
+    res.status(404).json({ 
+        success: false,
+        message: 'Route not found',
+        path: req.originalUrl 
+    });
+});
+
 // Error logging middleware
 app.use(errorLogger);
 
