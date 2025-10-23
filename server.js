@@ -8,6 +8,7 @@ const logger = require('./utils/logger');
 const { requestLogger, errorLogger, errorHandler } = require('./middleware/loggerMiddleware');
 
 const authRoutes = require('./routes/authRoutes');
+const invoiceRoutes = require('./routes/invoiceRoutes');
 
 const app = express();
 
@@ -37,6 +38,9 @@ logger.info('Body parser middleware configured');
 // Routes
 app.use('/api/v1/auth', authRoutes);
 logger.info('Auth routes registered');
+
+app.use('/api/v1/invoices', invoiceRoutes);
+logger.info('Invoice routes registered');
 
 app.get('/health', (req, res) => {
     logger.debug('Health check endpoint called');

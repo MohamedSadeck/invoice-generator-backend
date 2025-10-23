@@ -8,6 +8,20 @@ const itemSchema = new mongoose.Schema({
     total: { type: Number, required: true },
 });
 
+const billFromSchema = new mongoose.Schema({
+    businessName: { type: String, required: true },
+    email: { type: String },
+    address: { type: String },
+    phoneNumber: { type: String }
+}, { _id: false });
+
+const billToSchema = new mongoose.Schema({
+    clientName: { type: String, required: true },
+    email: { type: String },
+    address: { type: String },
+    phoneNumber: { type: String }
+}, { _id: false });
+
 const invoiceSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
@@ -26,16 +40,12 @@ const invoiceSchema = new mongoose.Schema({
         type: Date,
     },
     billFrom: {
-        businessName: String,
-        email: String,
-        address: String,
-        phoneNumber: String
+        type: billFromSchema,
+        required: true
     },
     billTo: {
-        clientName: String,
-        email: String,
-        address: String,
-        phoneNumber: String,
+        type: billToSchema,
+        required: true
     },
     items: [itemSchema],
     notes: {

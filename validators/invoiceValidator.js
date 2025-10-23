@@ -42,39 +42,79 @@ const validateInvoiceItem = (item, index) => {
     return errors;
 };
 
-const validateBillInfo = (billInfo, fieldPrefix) => {
+const validateBillFrom = (billFrom) => {
     const errors = [];
 
-    if (!billInfo) {
-        errors.push({ field: fieldPrefix, message: `${fieldPrefix} information is required` });
+    if (!billFrom) {
+        errors.push({ field: 'billFrom', message: 'Bill from information is required' });
         return errors;
     }
 
+    // Validate business name (required)
+    if (!billFrom.businessName || billFrom.businessName.trim() === '') {
+        errors.push({ field: 'billFrom.businessName', message: 'Business name is required' });
+    } else if (billFrom.businessName.length > 100) {
+        errors.push({ field: 'billFrom.businessName', message: 'Business name cannot exceed 100 characters' });
+    }
+
     // Validate email if provided
-    if (billInfo.email && billInfo.email.trim() !== '') {
+    if (billFrom.email && billFrom.email.trim() !== '') {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(billInfo.email)) {
-            errors.push({ field: `${fieldPrefix}.email`, message: 'Please provide a valid email address' });
+        if (!emailRegex.test(billFrom.email)) {
+            errors.push({ field: 'billFrom.email', message: 'Please provide a valid email address' });
         }
     }
 
     // Validate phone number if provided
-    if (billInfo.phoneNumber && billInfo.phoneNumber.trim() !== '') {
+    if (billFrom.phoneNumber && billFrom.phoneNumber.trim() !== '') {
         const phoneRegex = /^[\d\s\-\+\(\)]+$/;
-        if (!phoneRegex.test(billInfo.phoneNumber)) {
-            errors.push({ field: `${fieldPrefix}.phoneNumber`, message: 'Please provide a valid phone number' });
+        if (!phoneRegex.test(billFrom.phoneNumber)) {
+            errors.push({ field: 'billFrom.phoneNumber', message: 'Please provide a valid phone number' });
         }
     }
 
-    // Validate field lengths
-    if (billInfo.businessName && billInfo.businessName.length > 100) {
-        errors.push({ field: `${fieldPrefix}.businessName`, message: 'Business name cannot exceed 100 characters' });
+    // Validate address length
+    if (billFrom.address && billFrom.address.length > 300) {
+        errors.push({ field: 'billFrom.address', message: 'Address cannot exceed 300 characters' });
     }
-    if (billInfo.clientName && billInfo.clientName.length > 100) {
-        errors.push({ field: `${fieldPrefix}.clientName`, message: 'Client name cannot exceed 100 characters' });
+
+    return errors;
+};
+
+const validateBillTo = (billTo) => {
+    const errors = [];
+
+    if (!billTo) {
+        errors.push({ field: 'billTo', message: 'Bill to information is required' });
+        return errors;
     }
-    if (billInfo.address && billInfo.address.length > 300) {
-        errors.push({ field: `${fieldPrefix}.address`, message: 'Address cannot exceed 300 characters' });
+
+    // Validate client name (required)
+    if (!billTo.clientName || billTo.clientName.trim() === '') {
+        errors.push({ field: 'billTo.clientName', message: 'Client name is required' });
+    } else if (billTo.clientName.length > 100) {
+        errors.push({ field: 'billTo.clientName', message: 'Client name cannot exceed 100 characters' });
+    }
+
+    // Validate email if provided
+    if (billTo.email && billTo.email.trim() !== '') {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(billTo.email)) {
+            errors.push({ field: 'billTo.email', message: 'Please provide a valid email address' });
+        }
+    }
+
+    // Validate phone number if provided
+    if (billTo.phoneNumber && billTo.phoneNumber.trim() !== '') {
+        const phoneRegex = /^[\d\s\-\+\(\)]+$/;
+        if (!phoneRegex.test(billTo.phoneNumber)) {
+            errors.push({ field: 'billTo.phoneNumber', message: 'Please provide a valid phone number' });
+        }
+    }
+
+    // Validate address length
+    if (billTo.address && billTo.address.length > 300) {
+        errors.push({ field: 'billTo.address', message: 'Address cannot exceed 300 characters' });
     }
 
     return errors;
@@ -131,14 +171,11 @@ const validateCreateInvoice = (req, res, next) => {
     }
 
     // Validate billFrom
-    const billFromErrors = validateBillInfo(billFrom, 'billFrom');
+    const billFromErrors = validateBillFrom(billFrom);
     errors = errors.concat(billFromErrors);
 
     // Validate billTo
-    if (!billTo || !billTo.clientName || billTo.clientName.trim() === '') {
-        errors.push({ field: 'billTo.clientName', message: 'Client name is required' });
-    }
-    const billToErrors = validateBillInfo(billTo, 'billTo');
+    const billToErrors = validateBillTo(billTo);
     errors = errors.concat(billToErrors);
 
     // Validate items
@@ -254,16 +291,13 @@ const validateUpdateInvoice = (req, res, next) => {
 
     // Validate billFrom if provided
     if (billFrom !== undefined) {
-        const billFromErrors = validateBillInfo(billFrom, 'billFrom');
+        const billFromErrors = validateBillFrom(billFrom);
         errors = errors.concat(billFromErrors);
     }
 
     // Validate billTo if provided
     if (billTo !== undefined) {
-        if (billTo.clientName !== undefined && billTo.clientName.trim() === '') {
-            errors.push({ field: 'billTo.clientName', message: 'Client name cannot be empty' });
-        }
-        const billToErrors = validateBillInfo(billTo, 'billTo');
+        const billToErrors = validateBillTo(billTo);
         errors = errors.concat(billToErrors);
     }
 

@@ -18,7 +18,10 @@ const registerUser = async (req, res) => {
         const userExists = await User.findOne({ email });
         if (userExists) {
             logger.warn('Registration failed - user already exists', { email });
-            return res.status(400).json({ message: 'User already exists' });
+            return res.status(400).json({
+                success: false,
+                message: 'User already exists'
+            });
         }
 
         const user = await User.create({
@@ -44,7 +47,10 @@ const registerUser = async (req, res) => {
             });
         } else {
             logger.error('User creation failed - invalid data', { email });
-            res.status(400).json({ message: 'Invalid user data' });
+            res.status(400).json({
+                success: false,
+                message: 'Invalid user data'
+            });
         }
     } catch (error) {
         logger.error('Registration error', {
@@ -52,7 +58,10 @@ const registerUser = async (req, res) => {
             stack: error.stack,
             email
         });
-        res.status(500).json({ message: 'Server Error', error: error.message });
+        res.status(500).json({
+            success: false,
+            message: 'Server Error'
+        });
     }
 }
 
@@ -75,12 +84,15 @@ const loginUser = async (req, res) => {
                     id: userExists._id,
                     name: userExists.name,
                     email: userExists.email,
-                    token: generateToken(user._id),
+                    token: generateToken(userExists._id),
                 }
             });
         } else {
             logger.warn('Login failed - invalid credentials', { email });
-            res.status(401).json({ message: 'Invalid email or password' });
+            res.status(401).json({
+                success: false,
+                message: 'Invalid email or password'
+            });
         }
     } catch (error) {
         logger.error('Login error', {
@@ -88,7 +100,10 @@ const loginUser = async (req, res) => {
             stack: error.stack,
             email
         });
-        res.status(500).json({ message: 'Server Error', error: error.message });
+        res.status(500).json({
+            success: false,
+            message: 'Server Error'
+        });
     }
 }
 
@@ -113,7 +128,10 @@ const getMe = async (req, res) => {
             });
         } else {
             logger.warn('Get profile failed - user not found', { userId: req.user._id });
-            res.status(404).json({ message: 'User not found' });
+            res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
         }
     } catch (error) {
         logger.error('Get profile error', {
@@ -121,7 +139,10 @@ const getMe = async (req, res) => {
             stack: error.stack,
             userId: req.user?._id
         });
-        res.status(500).json({ message: 'Server Error', error: error.message });
+        res.status(500).json({
+            success: false,
+            message: 'Server Error'
+        });
     }
 }
 
@@ -159,7 +180,10 @@ const updateUserProfile = async (req, res) => {
             });
         } else {
             logger.warn('Update profile failed - user not found', { userId: req.user._id });
-            res.status(404).json({ message: 'User not found' });
+            res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
         }
     } catch (error) {
         logger.error('Update profile error', {
@@ -167,7 +191,10 @@ const updateUserProfile = async (req, res) => {
             stack: error.stack,
             userId: req.user?._id
         });
-        res.status(500).json({ message: 'Server Error', error: error.message });
+        res.status(500).json({
+            success: false,
+            message: 'Server Error'
+        });
     }
 }
 
