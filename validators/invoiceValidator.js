@@ -1,3 +1,5 @@
+const logger = require('../utils/logger');
+
 const validateInvoiceItem = (item, index) => {
     const errors = [];
 
@@ -94,6 +96,11 @@ const validateCreateInvoice = (req, res, next) => {
         total
     } = req.body;
     
+    logger.debug('Validating create invoice request', { 
+        invoiceNumber,
+        itemCount: items?.length 
+    });
+    
     let errors = [];
 
     // Validate invoice number
@@ -181,6 +188,11 @@ const validateCreateInvoice = (req, res, next) => {
     }
 
     if (errors.length > 0) {
+        logger.warn('Create invoice validation failed', { 
+            invoiceNumber,
+            errorCount: errors.length,
+            errorFields: errors.map(e => e.field)
+        });
         return res.status(400).json({ 
             success: false,
             message: 'Validation failed',
@@ -188,6 +200,7 @@ const validateCreateInvoice = (req, res, next) => {
         });
     }
 
+    logger.debug('Create invoice validation passed', { invoiceNumber });
     next();
 };
 
@@ -206,6 +219,10 @@ const validateUpdateInvoice = (req, res, next) => {
         taxTotal,
         total
     } = req.body;
+    
+    logger.debug('Validating update invoice request', { 
+        fields: Object.keys(req.body)
+    });
     
     let errors = [];
 
@@ -293,6 +310,10 @@ const validateUpdateInvoice = (req, res, next) => {
     }
 
     if (errors.length > 0) {
+        logger.warn('Update invoice validation failed', { 
+            errorCount: errors.length,
+            errorFields: errors.map(e => e.field)
+        });
         return res.status(400).json({ 
             success: false,
             message: 'Validation failed',
@@ -300,21 +321,26 @@ const validateUpdateInvoice = (req, res, next) => {
         });
     }
 
+    logger.debug('Update invoice validation passed');
     next();
 };
 
 const validateInvoiceId = (req, res, next) => {
     const { id } = req.params;
     
+    logger.debug('Validating invoice ID', { id });
+    
     // Validate MongoDB ObjectId format
     const objectIdRegex = /^[0-9a-fA-F]{24}$/;
     if (!objectIdRegex.test(id)) {
+        logger.warn('Invalid invoice ID format', { id });
         return res.status(400).json({ 
             success: false,
             message: 'Invalid invoice ID format' 
         });
     }
 
+    logger.debug('Invoice ID validation passed', { id });
     next();
 };
 

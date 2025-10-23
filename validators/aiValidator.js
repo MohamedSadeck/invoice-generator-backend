@@ -1,5 +1,13 @@
+const logger = require('../utils/logger');
+
 const validateImageUpload = (req, res, next) => {
     const errors = [];
+
+    logger.debug('Validating image upload', { 
+        hasFile: !!req.file,
+        mimetype: req.file?.mimetype,
+        size: req.file?.size 
+    });
 
     // Check if file was uploaded
     if (!req.file) {
@@ -34,6 +42,11 @@ const validateImageUpload = (req, res, next) => {
     }
 
     if (errors.length > 0) {
+        logger.warn('Image upload validation failed', { 
+            errors: errors.map(e => e.field),
+            mimetype: req.file?.mimetype,
+            size: req.file?.size 
+        });
         return res.status(400).json({ 
             success: false,
             message: 'Validation failed',
@@ -41,12 +54,15 @@ const validateImageUpload = (req, res, next) => {
         });
     }
 
+    logger.debug('Image upload validation passed');
     next();
 };
 
 const validateTextPrompt = (req, res, next) => {
     const { prompt } = req.body;
     const errors = [];
+
+    logger.debug('Validating text prompt', { promptLength: prompt?.length });
 
     // Validate prompt
     if (!prompt || prompt.trim() === '') {
@@ -58,6 +74,10 @@ const validateTextPrompt = (req, res, next) => {
     }
 
     if (errors.length > 0) {
+        logger.warn('Text prompt validation failed', { 
+            errors: errors.map(e => e.field),
+            promptLength: prompt?.length 
+        });
         return res.status(400).json({ 
             success: false,
             message: 'Validation failed',
@@ -65,12 +85,19 @@ const validateTextPrompt = (req, res, next) => {
         });
     }
 
+    logger.debug('Text prompt validation passed');
     next();
 };
 
 const validateInvoiceGenerationPrompt = (req, res, next) => {
     const { prompt, clientInfo, items } = req.body;
     const errors = [];
+
+    logger.debug('Validating invoice generation prompt', { 
+        hasPrompt: !!prompt,
+        hasClientInfo: !!clientInfo,
+        itemCount: items?.length 
+    });
 
     // Validate prompt if provided
     if (prompt && prompt.length > 2000) {
@@ -101,6 +128,9 @@ const validateInvoiceGenerationPrompt = (req, res, next) => {
     }
 
     if (errors.length > 0) {
+        logger.warn('Invoice generation prompt validation failed', { 
+            errors: errors.map(e => e.field)
+        });
         return res.status(400).json({ 
             success: false,
             message: 'Validation failed',
@@ -108,12 +138,15 @@ const validateInvoiceGenerationPrompt = (req, res, next) => {
         });
     }
 
+    logger.debug('Invoice generation prompt validation passed');
     next();
 };
 
 const validateAIRequest = (req, res, next) => {
     const { requestType, data } = req.body;
     const errors = [];
+
+    logger.debug('Validating AI request', { requestType });
 
     // Validate request type
     if (!requestType || requestType.trim() === '') {
@@ -136,6 +169,10 @@ const validateAIRequest = (req, res, next) => {
     }
 
     if (errors.length > 0) {
+        logger.warn('AI request validation failed', { 
+            errors: errors.map(e => e.field),
+            requestType 
+        });
         return res.status(400).json({ 
             success: false,
             message: 'Validation failed',
@@ -143,6 +180,7 @@ const validateAIRequest = (req, res, next) => {
         });
     }
 
+    logger.debug('AI request validation passed', { requestType });
     next();
 };
 

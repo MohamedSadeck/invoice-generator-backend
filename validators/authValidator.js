@@ -1,6 +1,10 @@
+const logger = require('../utils/logger');
+
 const validateRegister = (req, res, next) => {
     const { name, email, password } = req.body;
     const errors = [];
+
+    logger.debug('Validating registration data', { email, name });
 
     // Validate name
     if (!name || name.trim() === '') {
@@ -31,6 +35,10 @@ const validateRegister = (req, res, next) => {
     }
 
     if (errors.length > 0) {
+        logger.warn('Registration validation failed', { 
+            email, 
+            errors: errors.map(e => e.field) 
+        });
         return res.status(400).json({ 
             success: false,
             message: 'Validation failed',
@@ -38,12 +46,15 @@ const validateRegister = (req, res, next) => {
         });
     }
 
+    logger.debug('Registration validation passed', { email });
     next();
 };
 
 const validateLogin = (req, res, next) => {
     const { email, password } = req.body;
     const errors = [];
+
+    logger.debug('Validating login data', { email });
 
     // Validate email
     if (!email || email.trim() === '') {
@@ -61,6 +72,10 @@ const validateLogin = (req, res, next) => {
     }
 
     if (errors.length > 0) {
+        logger.warn('Login validation failed', { 
+            email, 
+            errors: errors.map(e => e.field) 
+        });
         return res.status(400).json({ 
             success: false,
             message: 'Validation failed',
@@ -68,12 +83,18 @@ const validateLogin = (req, res, next) => {
         });
     }
 
+    logger.debug('Login validation passed', { email });
     next();
 };
 
 const validateProfileUpdate = (req, res, next) => {
     const { name, email, businessName, address, phoneNumber } = req.body;
     const errors = [];
+
+    logger.debug('Validating profile update data', { 
+        email, 
+        fields: Object.keys(req.body) 
+    });
 
     // Validate name (if provided)
     if (name !== undefined) {
@@ -133,6 +154,8 @@ const validatePasswordChange = (req, res, next) => {
     const { currentPassword, newPassword } = req.body;
     const errors = [];
 
+    logger.debug('Validating password change request');
+
     // Validate current password
     if (!currentPassword) {
         errors.push({ field: 'currentPassword', message: 'Current password is required' });
@@ -153,6 +176,9 @@ const validatePasswordChange = (req, res, next) => {
     }
 
     if (errors.length > 0) {
+        logger.warn('Password change validation failed', { 
+            errors: errors.map(e => e.field) 
+        });
         return res.status(400).json({ 
             success: false,
             message: 'Validation failed',
@@ -160,6 +186,7 @@ const validatePasswordChange = (req, res, next) => {
         });
     }
 
+    logger.debug('Password change validation passed');
     next();
 };
 
