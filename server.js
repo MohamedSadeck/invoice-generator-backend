@@ -9,6 +9,7 @@ const { requestLogger, errorLogger, errorHandler } = require('./middleware/logge
 
 const authRoutes = require('./routes/authRoutes');
 const invoiceRoutes = require('./routes/invoiceRoutes');
+const aiRoutes = require('./routes/aiRoutes');
 
 const app = express();
 
@@ -41,6 +42,9 @@ logger.info('Auth routes registered');
 
 app.use('/api/v1/invoices', invoiceRoutes);
 logger.info('Invoice routes registered');
+
+app.use('/api/v1/ai', aiRoutes);
+logger.info('AI routes registered');
 
 app.get('/health', (req, res) => {
     logger.debug('Health check endpoint called');

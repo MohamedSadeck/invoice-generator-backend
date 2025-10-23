@@ -3,7 +3,7 @@ const express = require('express');
 const { registerUser, loginUser, getMe, updateUserProfile } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
-const {validateRegister, validateLogin, validateProfileUpdate} = require('../validators/authValidator');
+const {validateRegister, validateLogin, validateProfileUpdate} = require('../validators');
 
 const router = express.Router();
 

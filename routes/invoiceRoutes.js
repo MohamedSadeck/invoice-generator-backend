@@ -3,7 +3,7 @@ const express = require('express');
 const { createInvoice, getInvoices, getInvoiceById, updateInvoice, deleteInvoice } = require('../controllers/invoiceController');
 const { protect } = require('../middleware/authMiddleware');
 
-const {validateCreateInvoice, validateInvoiceId, validateUpdateInvoice} = require('../validators/invoiceValidator');
+const {validateCreateInvoice, validateInvoiceId, validateUpdateInvoice} = require('../validators');
 
 const router = express.Router();
 
