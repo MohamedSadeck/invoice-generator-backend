@@ -115,19 +115,64 @@ const generateReminderEmail = async (req, res) => {
 const getDashboardSummary = async (req, res) => {
     try {
         // basic summary: count of invoices and total outstanding amount
-        const invoices = await Invoice.find({});
-        const total = invoices.reduce((acc, inv) => acc + (inv.total || 0), 0);
-        const outstanding = invoices.filter(i => !i.paid).reduce((acc, inv) => acc + (inv.total || 0), 0);
+        const invoices = await Invoice.find({user: req.user._id});
 
-        const summary = {
-            invoiceCount: invoices.length,
-            totalAmount: total,
-            outstandingAmount: outstanding
-        };
+        if(invoices.length === 0) {
+            return res.status(200).json({ success: true, data: { invoiceCount: 0, totalAmount: 0, outstandingAmount: 0 } });
+        }
 
-        logger.info('Dashboard summary generated', { summary });
+        const totalInvoices = invoices.length;
+        const paidInvoices = invoices.filter(inv => inv.status === 'Paid');
+        const unpaidInvoices = invoices.filter(inv => inv.status !== 'Paid');
 
-        return res.status(200).json({ success: true, data: summary });
+        const totalRevenue = invoices.reduce((sum, inv) => sum + inv.total, 0);
+        const totalOutstanding = unpaidInvoices.reduce((sum, inv) => sum + inv.total, 0);
+
+        const dataSummary = `
+            - Total number of invoices: ${totalInvoices}
+            - Number of paid invoices: ${paidInvoices.length}
+            - Number of unpaid/pending invoices: ${unpaidInvoices.length}
+            - Total revenue from paid invoices: ${totalRevenue.toFixed(2)}Da
+            - Total outstanding amount from unpaid/pending invoices: ${totalOutstanding.toFixed(2)}
+            - Recent invoices (last 5): ${invoices.slice(0,5).map(inv => `Invoice #${inv.invoiceNumber} for ${inv.total.toFixed(2)} with status ${inv.status}`).join(',')}
+        `;
+
+        const prompt = `
+            You are a friendly and insightful financial analyst for a small business owner. 
+            Based on the following summary of their invoice data, provide 2-3 and actionable insights.
+            Each insight should be a short string in a JSON array.
+            The insights should be encouraging and helpful. Do no just repeat the data.
+            For example, if there is a high outstanding amount, suggest sending reminders. If revenue is high, be encouraging.
+
+            Data summary: 
+            ${dataSummary}
+
+            Return your response as a valid JSON object with a single key "insights" which is an array of strings.
+            example format: {"insights": ["Your revenue is looking string this month!","You have 5 overdue invoices, Consider sending reminders to get paid faster"]}
+        `;
+
+        const response = await ai.models.generateContent({
+            model: process.env.GOOGLE_AI_MODEL || 'gemini-2.5-flash',
+            contents: prompt
+        });
+
+        const responseText = response.text;
+
+        const cleanedJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+        const parsedData = JSON.parse(cleanedJson);
+
+        res.status(200).json({ 
+            success: true, 
+            data: {
+                invoiceCount: totalInvoices,
+                totalRevenue: totalRevenue.toFixed(2),
+                totalOutstanding: totalOutstanding.toFixed(2),
+                insights: parsedData.insights || []
+            }
+        });
+
+        logger.info('Dashboard summary generated', { userId: req.user._id, invoiceCount: totalInvoices });
     } catch (error) {
         logger.logError(error, req);
         return res.status(500).json({ success: false, message: 'Server Error' });
