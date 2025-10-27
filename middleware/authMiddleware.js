@@ -14,17 +14,17 @@ const protect = async (req, res, next) => {
             logger.debug('Verifying JWT token');
             
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            logger.debug('JWT token verified successfully', { userId: decoded.id });
+            logger.debug('JWT token verified successfully', { userId: decoded._id });
 
-            req.user = await User.findById(decoded.id).select('-password');
+            req.user = await User.findById(decoded._id).select('-password');
 
             if (!req.user) {
-                logger.warn('User not found for valid token', { userId: decoded.id });
+                logger.warn('User not found for valid token', { userId: decoded._id });
                 return res.status(401).json({success: false, message: "User not found"});
             }
 
             logger.debug('User authenticated successfully', { 
-                userId: req.user.id, 
+                userId: req.user._id, 
                 email: req.user.email 
             });
 

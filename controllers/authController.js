@@ -2,9 +2,9 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const logger = require('../utils/logger');
 
-const generateToken = (id) => {
-    logger.debug('Generating JWT token', { userId: id });
-    return jwt.sign({ id }, process.env.JWT_SECRET, {
+const generateToken = (_id) => {
+    logger.debug('Generating JWT token', { userId: _id });
+    return jwt.sign({ _id }, process.env.JWT_SECRET, {
         expiresIn: '30d',
     });
 }
@@ -39,7 +39,7 @@ const registerUser = async (req, res) => {
             res.status(201).json({
                 success: true,
                 data: {
-                    id: user._id,
+                    _id: user._id,
                     name: user.name,
                     email: user.email,
                     token: generateToken(user._id),
@@ -81,7 +81,7 @@ const loginUser = async (req, res) => {
             res.status(200).json({
                 success: true,
                 data: {
-                    id: userExists._id,
+                    _id: userExists._id,
                     name: userExists.name,
                     email: userExists.email,
                     token: generateToken(userExists._id),
@@ -118,7 +118,7 @@ const getMe = async (req, res) => {
             res.status(200).json({
                 success: true,
                 data: {
-                    id: user._id,
+                    _id: user._id,
                     name: user.name,
                     email: user.email,
                     businessName: user.businessName || "",
@@ -170,7 +170,7 @@ const updateUserProfile = async (req, res) => {
             res.status(200).json({
                 success: true,
                 data: {
-                    id: user._id,
+                    _id: user._id,
                     name: user.name,
                     email: user.email,
                     businessName: user.businessName,

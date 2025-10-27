@@ -36,7 +36,7 @@ const createInvoice = async (req, res) => {
         const total = subTotal + taxTotal;
 
         const invoice = new Invoice({
-            user: req.user.id,
+            user: req.user._id,
             invoiceNumber,
             invoiceDate: invoiceDate || Date.now(),
             dueDate,
@@ -53,7 +53,7 @@ const createInvoice = async (req, res) => {
 
         await invoice.save();
 
-        logger.info(`Invoice created: ${invoice.invoiceNumber} by user: ${req.user.id}`);
+        logger.info(`Invoice created: ${invoice.invoiceNumber} by user: ${req.user._id}`);
         
         res.status(201).json({
             success: true,
@@ -75,7 +75,7 @@ const getInvoices = async (req, res) => {
     try {
         const { status, page = 1, limit = 10, sortBy = 'createdAt', order = 'desc' } = req.query;
 
-        const query = { user: req.user.id };
+        const query = { user: req.user._id };
         
         // Filter by status if provided
         if (status) {
@@ -93,7 +93,7 @@ const getInvoices = async (req, res) => {
 
         const total = await Invoice.countDocuments(query);
 
-        logger.info(`Fetched ${invoices.length} invoices for user: ${req.user.id}`);
+        logger.info(`Fetched ${invoices.length} invoices for user: ${req.user._id}`);
 
         res.status(200).json({
             success: true,
@@ -132,15 +132,15 @@ const getInvoiceById = async (req, res) => {
         }
 
         // Check if the invoice belongs to the authenticated user
-        if (invoice.user._id.toString() !== req.user.id) {
-            logger.warn(`Unauthorized access attempt to invoice: ${id} by user: ${req.user.id}`);
+        if (invoice.user._id.toString() !== req.user._id.toString()) {
+            logger.warn(`Unauthorized access attempt to invoice: ${id} by user: ${req.user._id}`);
             return res.status(403).json({
                 success: false,
                 message: 'Unauthorized access to this invoice'
             });
         }
 
-        logger.info(`Invoice retrieved: ${id} by user: ${req.user.id}`);
+        logger.info(`Invoice retrieved: ${id} by user: ${req.user._id}`);
 
         res.status(200).json({
             success: true,
@@ -184,8 +184,8 @@ const updateInvoice = async (req, res) => {
         }
 
         // Check if the invoice belongs to the authenticated user
-        if (invoice.user.toString() !== req.user.id) {
-            logger.warn(`Unauthorized update attempt to invoice: ${id} by user: ${req.user.id}`);
+        if (invoice.user.toString() !== req.user._id.toString()) {
+            logger.warn(`Unauthorized update attempt to invoice: ${id} by user: ${req.user._id}`);
             return res.status(403).json({
                 success: false,
                 message: 'Unauthorized to update this invoice'
@@ -228,7 +228,7 @@ const updateInvoice = async (req, res) => {
 
         await invoice.save();
 
-        logger.info(`Invoice updated: ${id} by user: ${req.user.id}`);
+        logger.info(`Invoice updated: ${id} by user: ${req.user._id}`);
 
         res.status(200).json({
             success: true,
@@ -261,8 +261,8 @@ const deleteInvoice = async (req, res) => {
         }
 
         // Check if the invoice belongs to the authenticated user
-        if (invoice.user.toString() !== req.user.id) {
-            logger.warn(`Unauthorized delete attempt to invoice: ${id} by user: ${req.user.id}`);
+        if (invoice.user.toString() !== req.user._id.toString()) {
+            logger.warn(`Unauthorized delete attempt to invoice: ${id} by user: ${req.user._id}`);
             return res.status(403).json({
                 success: false,
                 message: 'Unauthorized to delete this invoice'
@@ -271,7 +271,7 @@ const deleteInvoice = async (req, res) => {
 
         await Invoice.findByIdAndDelete(id);
 
-        logger.info(`Invoice deleted: ${id} by user: ${req.user.id}`);
+        logger.info(`Invoice deleted: ${id} by user: ${req.user._id}`);
 
         res.status(200).json({
             success: true,
