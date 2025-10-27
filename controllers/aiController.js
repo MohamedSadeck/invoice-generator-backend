@@ -9,26 +9,39 @@ const parseTextFromInvoice = async (req, res) => {
     const { text } = req.body || {};
     try {
         const prompt = `
-            You are an expert invoice data extraction AI. Analyze the following text and extract the relevant information to create an invoice.
-            The output MUST be a valid JSON object with the following fields:
-            {
-                "clientName": "string",
-                "email": "string(if available)",
-                "address": "string(if available)",
-                "items": [
-                    {
-                        "name": "string",
-                        "quantity": number,
-                        "unitPrice": number
-                    }
-                ]
-            }
-            Here is the text to parse: 
-            --- TEXT START ---
-            ${text}
-            --- TEXT END ---
-            Extract the data and provide only the JSON object as specified.
-        `
+You are an expert invoice data extraction AI. Analyze the following text and extract the relevant information to create an invoice.
+
+CRITICAL: Your response MUST be ONLY valid JSON. Do not include any markdown, code blocks, or explanatory text.
+
+Required JSON structure:
+{
+    "clientName": "string",
+    "email": "string or empty string",
+    "address": "string or empty string",
+    "items": [
+        {
+            "name": "string",
+            "quantity": number,
+            "unitPrice": number
+        }
+    ]
+}
+
+Rules:
+1. Return ONLY the JSON object, nothing else
+2. Do NOT use trailing commas
+3. All property names must be in double quotes
+4. All string values must be in double quotes
+5. Numbers should not be quoted
+6. If a field is not available, use empty string "" for text fields
+7. Ensure the JSON is properly formatted and parseable
+
+Text to parse:
+--- TEXT START ---
+${text}
+--- TEXT END ---
+
+Return only the JSON object:`;
 
         const model = process.env.GOOGLE_AI_MODEL || 'gemini-2.5-pro';
         const response = await ai.models.generateContent({
@@ -52,14 +65,65 @@ const parseTextFromInvoice = async (req, res) => {
             responseText = JSON.stringify(response);
         }
 
-        const cleanedJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+        // Clean the response - remove markdown code blocks and trim
+        let cleanedJson = responseText
+            .replace(/```json\s*/g, '')
+            .replace(/```\s*/g, '')
+            .trim();
+
+        // Try to extract JSON object if there's extra text
+        const jsonMatch = cleanedJson.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            cleanedJson = jsonMatch[0];
+        }
+
+        // Fix common JSON syntax errors
+        cleanedJson = cleanedJson
+            // Remove trailing commas before closing braces/brackets
+            .replace(/,(\s*[}\]])/g, '$1')
+            // Fix missing commas between array elements (basic case)
+            .replace(/}\s*{/g, '},{')
+            // Remove any non-JSON characters before the first {
+            .replace(/^[^{]*/, '')
+            // Remove any non-JSON characters after the last }
+            .replace(/[^}]*$/, '');
+
+        logger.debug('Cleaned JSON response', { cleanedJson: cleanedJson.substring(0, 500) });
 
         let parsedData;
         try {
             parsedData = JSON.parse(cleanedJson);
         } catch (parseErr) {
-            logger.error('Failed to parse JSON from AI response', { parseError: parseErr.message, raw: cleanedJson });
-            return res.status(422).json({ success: false, message: 'Unable to parse AI response as JSON' });
+            logger.error('Failed to parse JSON from AI response', { 
+                parseError: parseErr.message, 
+                raw: cleanedJson.substring(0, 1000) 
+            });
+            
+            // Try one more time with a stricter cleanup
+            try {
+                const strictClean = cleanedJson
+                    .replace(/,\s*}/g, '}')
+                    .replace(/,\s*]/g, ']')
+                    .replace(/'/g, '"');
+                parsedData = JSON.parse(strictClean);
+                logger.info('JSON parsed successfully on second attempt');
+            } catch (secondErr) {
+                logger.error('Second parse attempt failed', { error: secondErr.message });
+                return res.status(422).json({ 
+                    success: false, 
+                    message: 'Unable to parse AI response as valid JSON. Please try again or rephrase your input.',
+                    details: parseErr.message
+                });
+            }
+        }
+
+        // Validate the parsed data structure
+        if (!parsedData.clientName || !Array.isArray(parsedData.items)) {
+            logger.error('Invalid data structure from AI', { parsedData });
+            return res.status(422).json({ 
+                success: false, 
+                message: 'AI response is missing required fields (clientName or items array)' 
+            });
         }
 
         logger.info('Text parsed from invoice successfully', { parsedData });
