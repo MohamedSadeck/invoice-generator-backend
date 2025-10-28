@@ -9,39 +9,61 @@ const parseTextFromInvoice = async (req, res) => {
     const { text } = req.body || {};
     try {
         const prompt = `
-You are an expert invoice data extraction AI. Analyze the following text and extract the relevant information to create an invoice.
+            You are an expert invoice data extraction AI. Analyze the following text and extract the relevant information to create an invoice.
 
-CRITICAL: Your response MUST be ONLY valid JSON. Do not include any markdown, code blocks, or explanatory text.
+            CRITICAL: Your response MUST be ONLY valid JSON. Do not include any markdown, code blocks, explanatory text, or any text outside the JSON object.
 
-Required JSON structure:
-{
-    "clientName": "string",
-    "email": "string or empty string",
-    "address": "string or empty string",
-    "items": [
-        {
-            "name": "string",
-            "quantity": number,
-            "unitPrice": number
-        }
-    ]
-}
+            Required JSON structure:
+            {
+                "clientName": "string",
+                "email": "string or empty string",
+                "address": "string or empty string",
+                "phoneNumber": "string or empty string",
+                "items": [
+                    {
+                        "name": "string (service or product name)",
+                        "quantity": number,
+                        "unitPrice": number
+                    }
+                ]
+            }
 
-Rules:
-1. Return ONLY the JSON object, nothing else
-2. Do NOT use trailing commas
-3. All property names must be in double quotes
-4. All string values must be in double quotes
-5. Numbers should not be quoted
-6. If a field is not available, use empty string "" for text fields
-7. Ensure the JSON is properly formatted and parseable
+            Extraction Rules:
+            1. **Output Format**: Return ONLY the JSON object, nothing else. No markdown code blocks, no explanations.
+            2. **JSON Validity**: 
+            - Do NOT use trailing commas
+            - All property names must be in double quotes
+            - All string values must be in double quotes
+            - Numbers should NOT be quoted
+            3. **Client Information**:
+            - Extract client/company name as "clientName"
+            - Look for email addresses and extract to "email"
+            - Look for physical addresses and extract to "address"
+            - Look for phone numbers and extract to "phoneNumber"
+            - If any field is not available, use empty string ""
+            4. **Items Extraction**:
+            - Identify all billable items, services, or products
+            - Extract the descriptive name for each item
+            - Parse quantities (hours, units, pieces, etc.)
+            - Extract unit prices (price per hour, price per item, etc.)
+            - Calculate totals if needed (quantity × unitPrice)
+            5. **Price Format**:
+            - Remove currency symbols (da, $, €, etc.)
+            - Convert prices to numeric values only
+            - Handle variations like "30000da/hr" → 30000
+            6. **Smart Parsing**:
+            - Recognize patterns like "X hours at Y/hr"
+            - Understand "X items for Y total" (calculate unitPrice = Y/X)
+            - Handle both "per item" and "total" pricing formats
+            7. **Ensure Valid JSON**: The response must be parseable by JSON.parse() without errors
 
-Text to parse:
---- TEXT START ---
-${text}
---- TEXT END ---
+            Text to parse:
+            --- TEXT START ---
+            ${text}
+            --- TEXT END ---
 
-Return only the JSON object:`;
+            Remember: Output ONLY the JSON object, nothing else.
+        `;
 
         const model = process.env.GOOGLE_AI_MODEL || 'gemini-2.5-pro';
         const response = await ai.models.generateContent({
@@ -94,11 +116,11 @@ Return only the JSON object:`;
         try {
             parsedData = JSON.parse(cleanedJson);
         } catch (parseErr) {
-            logger.error('Failed to parse JSON from AI response', { 
-                parseError: parseErr.message, 
-                raw: cleanedJson.substring(0, 1000) 
+            logger.error('Failed to parse JSON from AI response', {
+                parseError: parseErr.message,
+                raw: cleanedJson.substring(0, 1000)
             });
-            
+
             // Try one more time with a stricter cleanup
             try {
                 const strictClean = cleanedJson
@@ -109,8 +131,8 @@ Return only the JSON object:`;
                 logger.info('JSON parsed successfully on second attempt');
             } catch (secondErr) {
                 logger.error('Second parse attempt failed', { error: secondErr.message });
-                return res.status(422).json({ 
-                    success: false, 
+                return res.status(422).json({
+                    success: false,
                     message: 'Unable to parse AI response as valid JSON. Please try again or rephrase your input.',
                     details: parseErr.message
                 });
@@ -120,9 +142,9 @@ Return only the JSON object:`;
         // Validate the parsed data structure
         if (!parsedData.clientName || !Array.isArray(parsedData.items)) {
             logger.error('Invalid data structure from AI', { parsedData });
-            return res.status(422).json({ 
-                success: false, 
-                message: 'AI response is missing required fields (clientName or items array)' 
+            return res.status(422).json({
+                success: false,
+                message: 'AI response is missing required fields (clientName or items array)'
             });
         }
 
@@ -179,9 +201,9 @@ const generateReminderEmail = async (req, res) => {
 const getDashboardSummary = async (req, res) => {
     try {
         // basic summary: count of invoices and total outstanding amount
-        const invoices = await Invoice.find({user: req.user._id});
+        const invoices = await Invoice.find({ user: req.user._id });
 
-        if(invoices.length === 0) {
+        if (invoices.length === 0) {
             return res.status(200).json({ success: true, data: { invoiceCount: 0, totalAmount: 0, outstandingAmount: 0 } });
         }
 
@@ -198,7 +220,7 @@ const getDashboardSummary = async (req, res) => {
             - Number of unpaid/pending invoices: ${unpaidInvoices.length}
             - Total revenue from paid invoices: ${totalRevenue.toFixed(2)}Da
             - Total outstanding amount from unpaid/pending invoices: ${totalOutstanding.toFixed(2)}
-            - Recent invoices (last 5): ${invoices.slice(0,5).map(inv => `Invoice #${inv.invoiceNumber} for ${inv.total.toFixed(2)} with status ${inv.status}`).join(',')}
+            - Recent invoices (last 5): ${invoices.slice(0, 5).map(inv => `Invoice #${inv.invoiceNumber} for ${inv.total.toFixed(2)} with status ${inv.status}`).join(',')}
         `;
 
         const prompt = `
@@ -226,8 +248,8 @@ const getDashboardSummary = async (req, res) => {
 
         const parsedData = JSON.parse(cleanedJson);
 
-        res.status(200).json({ 
-            success: true, 
+        res.status(200).json({
+            success: true,
             data: {
                 invoiceCount: totalInvoices,
                 totalRevenue: totalRevenue.toFixed(2),
